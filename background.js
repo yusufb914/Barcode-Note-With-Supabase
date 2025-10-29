@@ -187,11 +187,10 @@ async function showResultPopup(title, message, type) {
       return;
     }
 
-    // Her sekmeye popup'ı inject et
-    for (const tab of tabs) {
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
+    // Tüm inject işlemlerini paralel olarak başlat
+    const injectPromises = tabs.map(tab => {
+      return chrome.scripting.executeScript({
+        target: { tabId: tab.id },
       func: (title, message, type) => {
         // Mevcut popup'ı kaldır
         const existingPopup = document.getElementById('barkod-result-popup');
@@ -261,11 +260,10 @@ async function showResultPopup(title, message, type) {
               border-radius: 2px;
               overflow: hidden;
             ">
-              <div style="
+              <div class="timer-bar" style="
                 width: 100%;
                 height: 100%;
                 background: ${color.text};
-                animation: timerBar 15s linear forwards;
               "></div>
             </div>
           </div>
@@ -280,12 +278,14 @@ async function showResultPopup(title, message, type) {
                 opacity: 1;
               }
             }
-            @keyframes timerBar {
+            @keyframes slideOut {
               from {
-                width: 100%;
+                transform: translateX(0);
+                opacity: 1;
               }
               to {
-                width: 0%;
+                transform: translateX(100%);
+                opacity: 0;
               }
             }
           </style>
@@ -293,21 +293,31 @@ async function showResultPopup(title, message, type) {
         
         document.body.appendChild(popup);
         
-        // 15 saniye sonra otomatik kapat
+        // Zamanlayıcı çubuğunu başlat
+        const timerBar = popup.querySelector('.timer-bar');
+        timerBar.style.transition = 'width 15s linear';
+        setTimeout(() => {
+          timerBar.style.width = '0%';
+        }, 10);
+        
+        // 15 saniye sonra otomatik kapat (kapanış animasyonu ile)
         setTimeout(() => {
           if (popup.parentElement) {
-            popup.style.animation = 'slideIn 0.3s ease-out reverse';
+            popup.style.animation = 'slideOut 0.3s ease-out forwards';
             setTimeout(() => popup.remove(), 300);
           }
         }, 15000);
         },
         args: [title, message, type]
-      });
-      } catch (err) {
+      }).catch(err => {
         // Bazı sekmelerde (chrome://, extension sayfaları) inject edilemez, sessizce devam et
         console.log(`Sekme ${tab.id} için popup inject edilemedi:`, err.message);
-      }
-    }
+      });
+    });
+
+    // Tüm inject işlemlerini paralel olarak bekle
+    await Promise.allSettled(injectPromises);
+    
   } catch (error) {
     console.error("Popup gösterme hatası:", error);
   }
@@ -323,7 +333,7 @@ async function showTogglePopup(barkod, note) {
       return;
     }
 
-    // Tüm inject işlemlerini paralel olarak başlat (senkronizasyon için)
+    // Tüm inject işlemlerini paralel olarak başlat
     const injectPromises = tabs.map(tab => {
       return chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -415,11 +425,10 @@ async function showTogglePopup(barkod, note) {
               border-radius: 2px;
               overflow: hidden;
             ">
-              <div style="
+              <div class="timer-bar" style="
                 width: 100%;
                 height: 100%;
                 background: ${color.text};
-                animation: timerBar 15s linear forwards;
               "></div>
             </div>
           </div>
@@ -434,12 +443,14 @@ async function showTogglePopup(barkod, note) {
                 opacity: 1;
               }
             }
-            @keyframes timerBar {
+            @keyframes slideOut {
               from {
-                width: 100%;
+                transform: translateX(0);
+                opacity: 1;
               }
               to {
-                width: 0%;
+                transform: translateX(100%);
+                opacity: 0;
               }
             }
           </style>
@@ -447,21 +458,31 @@ async function showTogglePopup(barkod, note) {
         
         document.body.appendChild(popup);
         
-        // 15 saniye sonra otomatik kapat
+        // Zamanlayıcı çubuğunu başlat
+        const timerBar = popup.querySelector('.timer-bar');
+        timerBar.style.transition = 'width 15s linear';
+        setTimeout(() => {
+          timerBar.style.width = '0%';
+        }, 10);
+        
+        // 15 saniye sonra otomatik kapat (kapanış animasyonu ile)
         setTimeout(() => {
           if (popup.parentElement) {
-            popup.style.animation = 'slideIn 0.3s ease-out reverse';
+            popup.style.animation = 'slideOut 0.3s ease-out forwards';
             setTimeout(() => popup.remove(), 300);
           }
         }, 15000);
         },
         args: [barkod, note]
-      });
-      } catch (err) {
+      }).catch(err => {
         // Bazı sekmelerde (chrome://, extension sayfaları) inject edilemez, sessizce devam et
         console.log(`Sekme ${tab.id} için popup inject edilemedi:`, err.message);
-      }
-    }
+      });
+    });
+
+    // Tüm inject işlemlerini paralel olarak bekle
+    await Promise.allSettled(injectPromises);
+    
   } catch (error) {
     console.error("Toggle popup gösterme hatası:", error);
   }

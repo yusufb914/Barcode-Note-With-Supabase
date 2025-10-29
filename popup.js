@@ -429,17 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       if (existing) {
-        if (confirm('Bu barkod zaten mevcut. Üzerine yazmak istiyorsunuz?')) {
-          const { error: updateError } = await supabaseClient
-            .from('kitaplar')
-            .update({ note: note })
-            .eq('isbn', barkod);
-          
-          if (updateError) throw updateError;
-          showStatus('Kayıt güncellendi!', 'success');
-        } else {
-          return;
-        }
+        showStatus('Bu barkod için zaten not mevcut! Üzerine yazılamaz.', 'error');
+        return;
       } else {
         const { error: insertError } = await supabaseClient
           .from('kitaplar')
