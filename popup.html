@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Barkod Not Arayıcı</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      width: 400px;
+      padding: 16px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      background: #f4faff;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #d0e5fa;
+    }
+    
+    .header h3 {
+      margin: 0;
+      color: #1976d2;
+      font-weight: 600;
+      font-size: 19px;
+      letter-spacing: -0.3px;
+    }
+    
+    .tab-container {
+      margin-bottom: 20px;
+    }
+    
+    .tabs {
+      display: flex;
+      background: #e3f2fd;
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+      font-size: 13px;
+      color: #1976d2;
+      font-weight: 500;
+    }
+    
+    .tab.active {
+      background: #64b5f6;
+      color: white;
+    }
+    
+    .tab:hover:not(.active) {
+      background: #bbdefb;
+    }
+    
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .upload-area {
+      border: 2px dashed #90caf9;
+      border-radius: 10px;
+      padding: 25px;
+      text-align: center;
+      margin: 15px 0;
+      cursor: pointer;
+      background: #ffffff;
+      transition: border-color 0.3s, background 0.3s;
+      color: #1565c0;
+      font-size: 14px;
+    }
+    
+    .upload-area:hover {
+      border-color: #1976d2;
+      background: #f0f8ff;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .status {
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    
+    .info {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    
+    .error {
+      background-color: #fdecea;
+      color: #b71c1c;
+      border: 1px solid #f5c6cb;
+    }
+    
+    button {
+      background-color: #64b5f6;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      margin: 6px 4px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    button:hover {
+      background-color: #1976d2;
+    }
+    
+    button.danger {
+      background-color: #ef5350;
+    }
+    
+    button.danger:hover {
+      background-color: #c62828;
+    }
+    
+    button.success {
+      background-color: #66bb6a;
+    }
+    
+    button.success:hover {
+      background-color: #388e3c;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 500;
+      font-size: 13px;
+      color: #1976d2;
+      letter-spacing: -0.1px;
+    }
+    
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 13.5px;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: white;
+      transition: all 0.2s ease;
+      line-height: 1.5;
+    }
+    
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #64b5f6;
+      box-shadow: 0 0 0 3px rgba(100,181,246,0.12);
+    }
+    
+    input[type="text"]:hover, textarea:hover, select:hover {
+      border-color: #bdbdbd;
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-color: #fafafa;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16'%3E%3Cpath fill='%231976d2' fill-rule='evenodd' d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 38px;
+      font-weight: 400;
+    }
+    
+    select:focus {
+      background-color: white;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+      line-height: 1.6;
+    }
+    
+    .data-list {
+      max-height: 240px;
+      overflow-y: auto;
+      border: 1px solid #d0e5fa;
+      border-radius: 8px;
+      margin-top: 10px;
+      background: white;
+    }
+    
+    .data-item {
+      padding: 13px 14px;
+      border-bottom: 1px solid #e3f2fd;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .data-item:last-child {
+      border-bottom: none;
+    }
+    
+    .data-item:hover {
+      background: #f4faff;
+    }
+    
+    .data-info {
+      flex: 1;
+    }
+    
+    .barkod-text {
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 5px;
+      letter-spacing: -0.1px;
+    }
+    
+    .note-text {
+      color: #555;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    
+    .data-actions {
+      margin-left: 8px;
+    }
+    
+    .btn-small {
+      padding: 6px 9px;
+      font-size: 12px;
+      margin-left: 4px;
+      border-radius: 6px;
+    }
+    
+    .search-box {
+      margin-bottom: 12px;
+    }
+    
+    .search-box input {
+      padding: 11px 13px;
+      width: 100%;
+      border-radius: 8px;
+      border: 1.5px solid #e0e0e0;
+      font-size: 13.5px;
+    }
+    
+    .stats {
+      background: #e3f2fd;
+      padding: 11px 14px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 13px;
+      color: #1565c0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-weight: 500;
+    }
+    
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h3>Barkod Not Arayıcı</h3>
+  </div>
+  
+  <div class="tab-container">
+    <div class="tabs">
+      <div class="tab active" data-tab="add">Yeni Ekle</div>
+      <div class="tab" data-tab="manage">Veri Yönet</div>
+      <div class="tab" data-tab="templates">Hazır Notlar</div>
+    </div>
+  </div>
+
+  <!-- Veri Ekleme Sekmesi -->
+  <div id="add-content" class="tab-content active">
+    <form id="addForm">
+      <div class="form-group">
+        <label for="newBarkod">Barkod</label>
+        <input type="text" id="newBarkod" placeholder="Barkod numarasını girin" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="noteTemplate">Hazır Not Seç (İsteğe Bağlı)</label>
+        <select id="noteTemplate">
+          <option value="">Manuel not gir veya hazır not seç</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="newNote">Not</label>
+        <textarea id="newNote" rows="3" placeholder="Bu barkod için notunuzu girin" required></textarea>
+      </div>
+      
+      <div style="text-align: center;">
+        <button type="submit" class="success">Ekle</button>
+        <button type="button" id="pasteButton">Panodaki Barkodu Yapıştır</button>
+      </div>
+    </form>
+    
+    <div id="status"></div>
+    
+    <div class="info" style="margin-top: 15px; text-align: center;">
+      <small>Clipboard otomatik izleniyor</small>
+    </div>
+  </div>
+
+  <!-- Veri Yönetim Sekmesi -->
+  <div id="manage-content" class="tab-content">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Barkod veya not ara...">
+    </div>
+    
+    <div class="stats" id="dataStats">
+      Veri yükleniyor...
+    </div>
+    
+    <div class="data-list" id="dataList">
+      <!-- Veriler burada listelenir -->
+    </div>
+    
+    <div style="text-align: center; margin-top: 15px;">
+      <button id="exportButton" class="success">CSV Dışa Aktar</button>
+      <button id="clearButton" class="danger">Tümünü Sil</button>
+    </div>
+  </div>
+
+  <!-- Hazır Notlar Sekmesi -->
+  <div id="templates-content" class="tab-content">
+    <div class="form-group">
+      <label for="templateName">Not Adı</label>
+      <input type="text" id="templateName" placeholder="Örn: Rafta Yok">
+    </div>
+    
+    <div class="form-group">
+      <label for="templateText">Not Metni</label>
+      <textarea id="templateText" rows="2" placeholder="Örn: Bu ürün şu an rafta bulunmamaktadır"></textarea>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+      <button id="addTemplateButton" class="success">Hazır Not Ekle</button>
+    </div>
+    
+    <div class="stats" id="templateStats">
+      Hazır notlar yükleniyor...
+    </div>
+    
+    <div class="data-list" id="templateList">
+      <!-- Hazır notlar burada listelenir -->
+    </div>
+  </div>
+
+  <script src="supabase.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
