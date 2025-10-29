@@ -80,23 +80,16 @@ chrome.commands.onCommand.addListener(async (command) => {
 // Clipboard'dan metin al
 async function getClipboardText() {
   try {
-    // Aktif tabı kontrol et ve gerekirse yeniden al
-    if (!tabIdGlobal) {
-      await getActiveTab();
+    // Her zaman güncel aktif sekmeyi al
+    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
+    if (!tabs[0]) {
+      return null;
     }
     
-    // Hala tab bulunamazsa, query ile yeniden dene
-    if (!tabIdGlobal) {
-      const tabs = await chrome.tabs.query({active: true, currentWindow: true});
-      if (tabs[0]) {
-        tabIdGlobal = tabs[0].id;
-      } else {
-        return null;
-      }
-    }
+    const currentTabId = tabs[0].id;
     
     const results = await chrome.scripting.executeScript({
-      target: { tabId: tabIdGlobal },
+      target: { tabId: currentTabId },
       func: () => navigator.clipboard.readText()
     });
     
@@ -153,7 +146,7 @@ async function autoSearchBarkod(barkod) {
     const note = await searchInSupabase(barkod);
     
     if (note) {
-      showResultPopup('✅ Not Bulundu!', `📦 ${barkod}\nNot var!`, 'success');
+      showTogglePopup(barkod, note);
     } 
   } catch (error) {
     console.error("Otomatik arama hatası:", error);
@@ -187,23 +180,18 @@ async function searchBarkod() {
 // Güzel popup göster (Windows bildirim kaldırıldı)
 async function showResultPopup(title, message, type) {
   try {
-    // Aktif tabı kontrol et ve gerekirse yeniden al
-    if (!tabIdGlobal) {
-      await getActiveTab();
-    }
+    // Tüm sekmeleri al ve her birine popup inject et
+    const tabs = await chrome.tabs.query({});
     
-    // Hala tab bulunamazsa, query ile yeniden dene
-    if (!tabIdGlobal) {
-      const tabs = await chrome.tabs.query({active: true, currentWindow: true});
-      if (tabs[0]) {
-        tabIdGlobal = tabs[0].id;
-      } else {
-        return; // Tab bulunamazsa sessizce çık
-      }
+    if (tabs.length === 0) {
+      return;
     }
 
-    await chrome.scripting.executeScript({
-      target: { tabId: tabIdGlobal },
+    // Her sekmeye popup'ı inject et
+    for (const tab of tabs) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
       func: (title, message, type) => {
         // Mevcut popup'ı kaldır
         const existingPopup = document.getElementById('barkod-result-popup');
@@ -232,6 +220,7 @@ async function showResultPopup(title, message, type) {
             border: 2px solid ${color.border};
             color: ${color.text};
             padding: 20px;
+            padding-bottom: 15px;
             border-radius: 12px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             z-index: 999999;
@@ -262,8 +251,22 @@ async function showResultPopup(title, message, type) {
                 height: 20px;
               ">×</button>
             </div>
-            <div style="white-space: pre-line; line-height: 1.4;">
+            <div style="white-space: pre-line; line-height: 1.4; margin-bottom: 12px;">
               ${message}
+            </div>
+            <div style="
+              width: 100%;
+              height: 4px;
+              background: rgba(0,0,0,0.1);
+              border-radius: 2px;
+              overflow: hidden;
+            ">
+              <div style="
+                width: 100%;
+                height: 100%;
+                background: ${color.text};
+                animation: timerBar 15s linear forwards;
+              "></div>
             </div>
           </div>
           <style>
@@ -277,23 +280,186 @@ async function showResultPopup(title, message, type) {
                 opacity: 1;
               }
             }
+            @keyframes timerBar {
+              from {
+                width: 100%;
+              }
+              to {
+                width: 0%;
+              }
+            }
           </style>
         `;
         
         document.body.appendChild(popup);
         
-        // 5 saniye sonra otomatik kapat
+        // 15 saniye sonra otomatik kapat
         setTimeout(() => {
           if (popup.parentElement) {
             popup.style.animation = 'slideIn 0.3s ease-out reverse';
             setTimeout(() => popup.remove(), 300);
           }
-        }, 5000);
+        }, 15000);
       },
       args: [title, message, type]
     });
   } catch (error) {
     console.error("Popup gösterme hatası:", error);
     // Windows bildirim fallback'i kaldırıldı
+  }
+}
+
+// Toggle özellikli popup göster (otomatik kopyalama için)
+async function showTogglePopup(barkod, note) {
+  try {
+    // Tüm sekmeleri al ve her birine popup inject et
+    const tabs = await chrome.tabs.query({});
+    
+    if (tabs.length === 0) {
+      return;
+    }
+
+    // Her sekmeye popup'ı inject et
+    for (const tab of tabs) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+      func: (barkod, note) => {
+        // Mevcut popup'ı kaldır
+        const existingPopup = document.getElementById('barkod-result-popup');
+        if (existingPopup) {
+          existingPopup.remove();
+        }
+
+        // Yeni popup oluştur
+        const popup = document.createElement('div');
+        popup.id = 'barkod-result-popup';
+        
+        const color = { bg: '#d4edda', border: '#c3e6cb', text: '#155724' };
+        
+        popup.innerHTML = `
+          <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${color.bg};
+            border: 2px solid ${color.border};
+            color: ${color.text};
+            padding: 20px;
+            padding-bottom: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            z-index: 999999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            max-width: 350px;
+            min-width: 250px;
+            animation: slideIn 0.3s ease-out;
+          ">
+            <div style="
+              font-weight: bold;
+              font-size: 16px;
+              margin-bottom: 10px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            ">
+              <span>✅ Not Var!</span>
+              <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: ${color.text};
+                opacity: 0.7;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+              ">×</button>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div 
+                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'; this.querySelector('.toggle-icon').textContent = this.nextElementSibling.style.display === 'none' ? '▶' : '▼';"
+                style="
+                  cursor: pointer;
+                  padding: 8px;
+                  background: rgba(0,0,0,0.05);
+                  border-radius: 6px;
+                  user-select: none;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                <span class="toggle-icon" style="font-size: 12px;">▶</span>
+                <span style="font-weight: 500;">📦 ${barkod}</span>
+              </div>
+              <div style="
+                display: none;
+                margin-top: 8px;
+                padding: 10px;
+                background: rgba(255,255,255,0.6);
+                border-radius: 6px;
+                border-left: 3px solid ${color.text};
+              ">
+                <div style="white-space: pre-line; line-height: 1.4;">💡 ${note}</div>
+              </div>
+            </div>
+            <div style="
+              width: 100%;
+              height: 4px;
+              background: rgba(0,0,0,0.1);
+              border-radius: 2px;
+              overflow: hidden;
+            ">
+              <div style="
+                width: 100%;
+                height: 100%;
+                background: ${color.text};
+                animation: timerBar 15s linear forwards;
+              "></div>
+            </div>
+          </div>
+          <style>
+            @keyframes slideIn {
+              from {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+            @keyframes timerBar {
+              from {
+                width: 100%;
+              }
+              to {
+                width: 0%;
+              }
+            }
+          </style>
+        `;
+        
+        document.body.appendChild(popup);
+        
+        // 15 saniye sonra otomatik kapat
+        setTimeout(() => {
+          if (popup.parentElement) {
+            popup.style.animation = 'slideIn 0.3s ease-out reverse';
+            setTimeout(() => popup.remove(), 300);
+          }
+        }, 15000);
+        },
+        args: [barkod, note]
+      });
+      } catch (err) {
+        // Bazı sekmelerde (chrome://, extension sayfaları) inject edilemez, sessizce devam et
+        console.log(`Sekme ${tab.id} için popup inject edilemedi:`, err.message);
+      }
+    }
+  } catch (error) {
+    console.error("Toggle popup gösterme hatası:", error);
   }
 }

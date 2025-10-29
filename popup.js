@@ -52,7 +52,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Hazır not seçildiğinde textarea'yı doldur
   noteTemplate.addEventListener('change', function() {
-    if (this.value) {
+    if (this.value === '__STOK_NOTU__') {
+      // STOK NOTU seçildiğinde adet sor
+      const adet = prompt('Kaç adet stok hatası var?');
+      if (adet && !isNaN(adet) && parseInt(adet) > 0) {
+        newNote.value = `${adet} adet stok hatası!`;
+      } else if (adet !== null) {
+        alert('Lütfen geçerli bir sayı girin');
+        this.value = ''; // Seçimi sıfırla
+      } else {
+        this.value = ''; // İptal edildi, seçimi sıfırla
+      }
+    } else if (this.value) {
       newNote.value = this.value;
     }
   });
@@ -93,6 +104,12 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Dropdown'ı temizle ve varsayılan seçeneği ekle
       noteTemplate.innerHTML = '<option value="">-- Manuel not gir veya hazır not seç --</option>';
+      
+      // STOK NOTU özel seçeneğini ekle
+      const stokOption = document.createElement('option');
+      stokOption.value = '__STOK_NOTU__';
+      stokOption.textContent = '⛔ STOK NOTU';
+      noteTemplate.appendChild(stokOption);
       
       // Hazır notları ekle
       if (templates && templates.length > 0) {
