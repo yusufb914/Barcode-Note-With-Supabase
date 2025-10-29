@@ -300,12 +300,16 @@ async function showResultPopup(title, message, type) {
             setTimeout(() => popup.remove(), 300);
           }
         }, 15000);
-      },
-      args: [title, message, type]
-    });
+        },
+        args: [title, message, type]
+      });
+      } catch (err) {
+        // Bazı sekmelerde (chrome://, extension sayfaları) inject edilemez, sessizce devam et
+        console.log(`Sekme ${tab.id} için popup inject edilemedi:`, err.message);
+      }
+    }
   } catch (error) {
     console.error("Popup gösterme hatası:", error);
-    // Windows bildirim fallback'i kaldırıldı
   }
 }
 
@@ -319,11 +323,10 @@ async function showTogglePopup(barkod, note) {
       return;
     }
 
-    // Her sekmeye popup'ı inject et
-    for (const tab of tabs) {
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
+    // Tüm inject işlemlerini paralel olarak başlat (senkronizasyon için)
+    const injectPromises = tabs.map(tab => {
+      return chrome.scripting.executeScript({
+        target: { tabId: tab.id },
       func: (barkod, note) => {
         // Mevcut popup'ı kaldır
         const existingPopup = document.getElementById('barkod-result-popup');
